@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MODL dashboard viewport test</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin:0; font:14px/1.45 system-ui,-apple-system,"Segoe UI",Arial,sans-serif; }
+  header { padding:10px 12px; border-bottom:1px solid #bbb; }
+  h1 { font-size:15px; margin:0 0 8px; font-weight:600; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  label { font-size:12px; display:flex; gap:5px; align-items:center; }
+  select { font-size:16px; padding:5px; max-width:60vw; }
+  /* 16px on form controls stops iOS auto-zooming on focus, which would corrupt the measurement */
+  #readout { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; white-space:pre; overflow-x:auto; }
+  #wrap { width:100%; margin:0 auto; }
+  #frame { width:100%; border:0; display:block; height:76vh; }
+  .warn { color:#b45309; font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MODL dashboard viewport test</h1>
+  <div class="row">
+    <label>page
+      <select id="page">
+        <option value="354e8f1298152bebcee7" selected>Mobile Home</option>
+        <option value="cd266f6ac2411830747b">Mobile Community Action Plan</option>
+        <option value="c0a8e9134b5d6f720183">Mobile Community Plan Overview</option>
+        <option value="a6f0b4e19d2c7f8531ae">Mobile Community Explore Actions</option>
+        <option value="be5c9234208780b69ecb">Mobile Corporate Action Plan</option>
+        <option value="d1b9f0245c6e7a831294">Mobile Corporate Plan Overview</option>
+        <option value="b7d0c1e2f3a4b5c6d7e8">Mobile Corporate Explore Actions</option>
+        <option value="edfee36f76b7d4e80372">Mobile Plan, Reports &amp; Timeline</option>
+        <option value="62ff279e99a154fb4ebb">Mobile About the Dashboard</option>
+        <option value="">(report default)</option>
+      </select>
+    </label>
+    <label>container
+      <select id="w">
+        <option value="" selected>100% (real)</option>
+        <option value="325">325 px</option>
+        <option value="360">360 px</option>
+        <option value="390">390 px</option>
+        <option value="430">430 px</option>
+      </select>
+    </label>
+  </div>
+  <div id="readout"></div>
+  <div class="warn" id="warn" hidden>Page names come from the .pbix, not the published report. A blank report means the name did not resolve — switch to "(report default)".</div>
+</header>
+
+<div id="wrap"><iframe id="frame" title="MODL Climate Action Dashboard under test" allowfullscreen></iframe></div>
+
+<script>
+(function () {
+  var BASE = 'https://app.powerbi.com/view?r=eyJrIjoiYTE2MmYyMjktZDdlOS00NjM0LWJhNmEtMDA4MTNmNTRhMzBmIiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9';
+  var frame = document.getElementById('frame'),
+      wrap  = document.getElementById('wrap'),
+      out   = document.getElementById('readout'),
+      page  = document.getElementById('page'),
+      wsel  = document.getElementById('w'),
+      warn  = document.getElementById('warn');
+
+  function measure() {
+    var vv = window.visualViewport, iw = frame.clientWidth;
+    out.textContent =
+      'window.innerWidth    ' + window.innerWidth + '   <- layout viewport; ~980 means trouble\n' +
+      'screen.width         ' + screen.width + '\n' +
+      'devicePixelRatio     ' + window.devicePixelRatio + '\n' +
+      (vv ? 'visualViewport       ' + Math.round(vv.width) + ' @ scale ' + vv.scale.toFixed(2) + '\n' : '') +
+      'iframe width         ' + iw + '   <- what Power BI fits to\n' +
+      'expected zoom        ' + Math.round(iw / 325 * 100) + '%  from the 325 px canvas';
+  }
+
+  function load() {
+    var p = page.value;
+    frame.src = BASE + (p ? '&pageName=' + encodeURIComponent(p) : '');
+    warn.hidden = !p;
+    setTimeout(measure, 60);
+  }
+
+  page.addEventListener('change', load);
+  wsel.addEventListener('change', function () {
+    wrap.style.maxWidth = wsel.value ? wsel.value + 'px' : '';
+    setTimeout(measure, 60);
+  });
+  window.addEventListener('resize', measure);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', measure);
+
+  load();
+})();
+</script>
+
+</body>
+</html>
