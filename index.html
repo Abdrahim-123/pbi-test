@@ -31,16 +31,16 @@
 <pre id="dbg" hidden></pre>
 <noscript>
   <p style="font:16px system-ui;padding:16px">
-    <a href="https://app.powerbi.com/view?r=eyJrIjoiNDY1MmU0ZDktMDdlNC00MTBjLTgwYzMtMDlmZTdiMzZlNmQ0IiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9">Open the MODL Climate Action Dashboard</a>
+    <a href="https://app.powerbi.com/view?r=eyJrIjoiY2MzYjEyZDUtOWVkMS00YWI3LWFiZjMtZDVkOWE4MzQ2YzhiIiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9">Open the MODL Climate Action Dashboard</a>
   </p>
 </noscript>
 
 <script>
 (function () {
 
-  var BUILD = '2026-09-09e';
+  var BUILD = '2026-09-09g';
 
-  var BASE = 'https://app.powerbi.com/view?r=eyJrIjoiNDY1MmU0ZDktMDdlNC00MTBjLTgwYzMtMDlmZTdiMzZlNmQ0IiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9';
+  var BASE = 'https://app.powerbi.com/view?r=eyJrIjoiY2MzYjEyZDUtOWVkMS00YWI3LWFiZjMtZDVkOWE4MzQ2YzhiIiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9';
 
   var PAGE = {
     mobile:  '354e8f1298152bebcee7',   // Mobile Home
@@ -59,6 +59,14 @@
   // Override live with ?res=N to retune. 0 disables the compensation.
   var MOBILE_RESERVE  = 18;
   var DESKTOP_RESERVE = 0;  // left at 0 so mouse users keep a visible scrollbar
+
+  // Pin the mobile report to an exact width instead of filling the screen.
+  // The mobile canvas is 325 px, so a 325 px container means fit-to-width lands on
+  // 100% and Power BI applies NO scale transform -- which is the only way anything
+  // inside the report (vector included) stays truly sharp. Costs white margins:
+  // on a 402 px phone the report is 325 wide with ~38 px each side.
+  // 0 = fill the screen (softer, edge to edge). Try live with ?exact=325 / ?exact=0.
+  var MOBILE_EXACT_W = 0;
   // --------------------------------------------------------------------------
 
   var q = new URLSearchParams(location.search);
@@ -72,7 +80,10 @@
     : (isMobile ? MOBILE_RESERVE : DESKTOP_RESERVE);
 
   // Width the report should actually occupy on screen.
-  var target = isMobile ? vw : Math.min(DESKTOP_MAX, vw);
+  var exact = q.get('exact') !== null ? (parseInt(q.get('exact'), 10) || 0) : MOBILE_EXACT_W;
+  var target = isMobile
+    ? (exact > 0 ? Math.min(exact, vw) : vw)
+    : Math.min(DESKTOP_MAX, vw);
 
   var clip  = document.getElementById('clip'),
       wrap  = document.getElementById('wrap'),
@@ -95,6 +106,7 @@
         'branch         ' + (isMobile ? 'MOBILE' : 'DESKTOP') + '\n' +
         'pageName sent  ' + pageName + '\n' +
         'reserve        ' + reserve + '   (?res=N to retune)\n' +
+        'exact width    ' + (exact > 0 ? exact : 'off (fills screen)') + '   (?exact=325)\n' +
         'iframe width   ' + frame.clientWidth + '  visible ' + target + '\n' +
         'expect zoom    ' + Math.round(target / (isMobile ? 328 : 1280) * 100) + '%';
     }, 400);
