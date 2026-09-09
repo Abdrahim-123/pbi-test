@@ -4,15 +4,64 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MODL Climate Action Dashboard</title>
+<!-- Uncomment on a throwaway test host you don't want indexed:
+<meta name="robots" content="noindex"> -->
 <style>
-  html, body { margin:0; padding:0; height:100%; }
-  iframe { width:100%; height:100vh; border:0; display:block; }
+  html, body { margin:0; padding:0; height:100%; background:#fff; }
+  #wrap {
+    width:100%;
+    height:100vh;      /* fallback */
+    height:100dvh;     /* mobile browsers: excludes the collapsing URL bar */
+    margin:0 auto;
+  }
+  #frame { width:100%; height:100%; border:0; display:block; }
+  /* No transform: scale() anywhere. That is what caused the grain. */
 </style>
 </head>
 <body>
-<iframe
-  src="https://app.powerbi.com/view?r=eyJrIjoiNDlhYzExMWYtZWU2MC00YTFmLWJjZGUtZGUwYjJjYjZiMTQ4IiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9"
-  title="MODL Climate Action Dashboard"
-  allowfullscreen></iframe>
+
+<div id="wrap">
+  <iframe id="frame" title="MODL Climate Action Dashboard" allowfullscreen></iframe>
+</div>
+<noscript>
+  <p style="font:16px system-ui;padding:16px">
+    <a href="https://app.powerbi.com/view?r=eyJrIjoiMzIzMDk4YTktOGU2ZC00MzIwLTlkNDktNGYzMWJmNjBmMDgzIiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9">Open the MODL Climate Action Dashboard</a>
+  </p>
+</noscript>
+
+<script>
+(function () {
+
+  var BASE = 'https://app.powerbi.com/view?r=eyJrIjoiMzIzMDk4YTktOGU2ZC00MzIwLTlkNDktNGYzMWJmNjBmMDgzIiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9';
+
+  var PAGE = {
+    mobile:  '354e8f1298152bebcee7',   // Mobile Home
+    desktop: '2c8e7e34f76a2e4428bc'    // Desktop Home
+  };
+
+  // --- the three numbers you might want to change ---------------------------
+  var BREAKPOINT   = 768;   // device short side below this = phone
+  var MOBILE_MAX   = 430;   // caps the 325px canvas at ~1.3x in phone landscape
+  var DESKTOP_MAX  = 1280;  // report is authored at 1280; 1:1 is sharpest.
+                            // Set to 99999 for full-bleed on wide monitors.
+  // --------------------------------------------------------------------------
+
+  // Classify by the device's SHORT side, not the current window width, so
+  // rotating a phone does not flip it to the desktop layout.
+  var w = screen.width  || window.innerWidth;
+  var h = screen.height || window.innerHeight;
+  var isMobile = Math.min(w, h) < BREAKPOINT;
+
+  document.getElementById('wrap').style.maxWidth =
+    (isMobile ? MOBILE_MAX : DESKTOP_MAX) + 'px';
+
+  document.getElementById('frame').src =
+    BASE + '&pageName=' + PAGE[isMobile ? 'mobile' : 'desktop'];
+
+  // Deliberately no resize handler: changing the page would reload the report
+  // and throw away whatever the visitor had open.
+})();
+</script>
+
 </body>
 </html>
