@@ -5,27 +5,29 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MODL Climate Action Dashboard</title>
 <style>
-  html, body { margin:0; padding:0; height:100%; background:#fff; }
-  #wrap {
-    width:100%;
-    height:100vh;      /* fallback */
-    height:100dvh;     /* mobile browsers: excludes the collapsing URL bar */
-    margin:0 auto;
+  html, body { margin:0; padding:0; height:100%; background:#fff; overflow-x:hidden; }
+  /* #clip is exactly the visible width and hides the scrollbar gutter that
+     #wrap deliberately overhangs by. */
+  #clip {
+    width:100%; overflow:hidden;
+    height:100vh;   /* fallback */
+    height:100dvh;  /* mobile: excludes the collapsing URL bar */
   }
+  #wrap  { height:100%; }
   #frame { width:100%; height:100%; border:0; display:block; }
   /* No transform / scale() anywhere. That is what caused the grain. */
   #dbg {
     position:fixed; top:0; left:0; right:0; z-index:9;
     background:#111; color:#0f0; font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;
-    padding:8px 10px; white-space:pre-wrap; word-break:break-all;
+    padding:8px 10px; white-space:pre-wrap; word-break:break-all; margin:0;
   }
 </style>
 </head>
 <body>
 
-<div id="wrap">
+<div id="clip"><div id="wrap">
   <iframe id="frame" title="MODL Climate Action Dashboard" allowfullscreen></iframe>
-</div>
+</div></div>
 <pre id="dbg" hidden></pre>
 <noscript>
   <p style="font:16px system-ui;padding:16px">
@@ -36,7 +38,7 @@
 <script>
 (function () {
 
-  var BUILD = '2026-09-09c';   // bump this when you re-upload, to prove the cache cleared
+  var BUILD = '2026-09-09d';
 
   var BASE = 'https://app.powerbi.com/view?r=eyJrIjoiMzIzMDk4YTktOGU2ZC00MzIwLTlkNDktNGYzMWJmNjBmMDgzIiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9';
 
@@ -45,44 +47,56 @@
     desktop: '2c8e7e34f76a2e4428bc'    // Desktop Home
   };
 
-  // --- the three numbers you might want to change ---------------------------
-  var BREAKPOINT  = 768;    // window width below this = mobile layout
-  var MOBILE_MAX  = 430;    // caps the 325px canvas at ~1.3x in phone landscape
-  var DESKTOP_MAX = 1280;   // report is authored at 1280; 1:1 is sharpest.
+  // --- the numbers you might want to change ---------------------------------
+  var BREAKPOINT   = 768;   // window width below this = mobile layout
+  var DESKTOP_MAX  = 1280;  // report is authored at 1280; 1:1 is sharpest.
                             // Set to 99999 for full-bleed on wide monitors.
+
+  // Power BI reserves this much inside the iframe for its vertical scrollbar,
+  // which is what leaves the white strip down the right. We overhang the iframe
+  // by the same amount and clip it, so the report fills the screen instead.
+  // Measured 18 on iPhone (402px wide, 117% => 402-18=384, 384/328=117%).
+  // Override live with ?res=N to retune. 0 disables the compensation.
+  var MOBILE_RESERVE  = 18;
+  var DESKTOP_RESERVE = 0;  // left at 0 so mouse users keep a visible scrollbar
   // --------------------------------------------------------------------------
 
   var q = new URLSearchParams(location.search);
 
-  // Width of the actual browser window. On a desktop this is ~1200-2500;
-  // on a phone ~320-430. Overridable with ?view=desktop or ?view=mobile.
   var vw = window.innerWidth || document.documentElement.clientWidth;
   var forced = q.get('view');
   var isMobile = forced ? (forced === 'mobile') : (vw < BREAKPOINT);
 
-  var wrap = document.getElementById('wrap'),
+  var reserve = q.get('res') !== null
+    ? parseInt(q.get('res'), 10) || 0
+    : (isMobile ? MOBILE_RESERVE : DESKTOP_RESERVE);
+
+  // Width the report should actually occupy on screen.
+  var target = isMobile ? vw : Math.min(DESKTOP_MAX, vw);
+
+  var clip  = document.getElementById('clip'),
+      wrap  = document.getElementById('wrap'),
       frame = document.getElementById('frame');
 
-  wrap.style.maxWidth = (isMobile ? MOBILE_MAX : DESKTOP_MAX) + 'px';
+  wrap.style.width      = (target + reserve) + 'px';
+  wrap.style.marginLeft = Math.max(0, Math.round((vw - target) / 2)) + 'px';
 
   var pageName = PAGE[isMobile ? 'mobile' : 'desktop'];
-  var url = BASE + '&pageName=' + pageName;
-  frame.src = url;
+  frame.src = BASE + '&pageName=' + pageName;
 
-  // ?debug=1 shows what this page decided. Remove nothing; just drop the param.
   if (q.get('debug')) {
     var d = document.getElementById('dbg');
     d.hidden = false;
-    wrap.style.height = 'calc(100dvh - 130px)';
+    clip.style.height = 'calc(100dvh - 130px)';
     setTimeout(function () {
       d.textContent =
         'build          ' + BUILD + '\n' +
-        'innerWidth     ' + vw + (forced ? '   (OVERRIDDEN by ?view=' + forced + ')' : '') + '\n' +
-        'screen         ' + screen.width + ' x ' + screen.height + '\n' +
+        'innerWidth     ' + vw + (forced ? '  (?view=' + forced + ')' : '') + '\n' +
         'branch         ' + (isMobile ? 'MOBILE' : 'DESKTOP') + '\n' +
-        'pageName sent  ' + pageName + '  (' + (isMobile ? 'Mobile Home' : 'Desktop Home') + ')\n' +
-        'iframe width   ' + frame.clientWidth + '   -> expect ' +
-          Math.round(frame.clientWidth / (isMobile ? 325 : 1280) * 100) + '% zoom';
+        'pageName sent  ' + pageName + '\n' +
+        'reserve        ' + reserve + '   (?res=N to retune)\n' +
+        'iframe width   ' + frame.clientWidth + '  visible ' + target + '\n' +
+        'expect zoom    ' + Math.round(target / (isMobile ? 328 : 1280) * 100) + '%';
     }, 400);
   }
 
