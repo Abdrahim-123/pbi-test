@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MODL Climate Action Dashboard</title>
-<!-- Uncomment on a throwaway test host you don't want indexed:
-<meta name="robots" content="noindex"> -->
 <style>
   html, body { margin:0; padding:0; height:100%; background:#fff; }
   #wrap {
@@ -15,7 +13,12 @@
     margin:0 auto;
   }
   #frame { width:100%; height:100%; border:0; display:block; }
-  /* No transform: scale() anywhere. That is what caused the grain. */
+  /* No transform / scale() anywhere. That is what caused the grain. */
+  #dbg {
+    position:fixed; top:0; left:0; right:0; z-index:9;
+    background:#111; color:#0f0; font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;
+    padding:8px 10px; white-space:pre-wrap; word-break:break-all;
+  }
 </style>
 </head>
 <body>
@@ -23,6 +26,7 @@
 <div id="wrap">
   <iframe id="frame" title="MODL Climate Action Dashboard" allowfullscreen></iframe>
 </div>
+<pre id="dbg" hidden></pre>
 <noscript>
   <p style="font:16px system-ui;padding:16px">
     <a href="https://app.powerbi.com/view?r=eyJrIjoiMzIzMDk4YTktOGU2ZC00MzIwLTlkNDktNGYzMWJmNjBmMDgzIiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9">Open the MODL Climate Action Dashboard</a>
@@ -32,6 +36,8 @@
 <script>
 (function () {
 
+  var BUILD = '2026-09-09c';   // bump this when you re-upload, to prove the cache cleared
+
   var BASE = 'https://app.powerbi.com/view?r=eyJrIjoiMzIzMDk4YTktOGU2ZC00MzIwLTlkNDktNGYzMWJmNjBmMDgzIiwidCI6IjdlNWUyZWU0LWQyMTItNDdkNC05OTA5LTk5NWY4NzlkMWFhMSJ9';
 
   var PAGE = {
@@ -40,23 +46,45 @@
   };
 
   // --- the three numbers you might want to change ---------------------------
-  var BREAKPOINT   = 768;   // device short side below this = phone
-  var MOBILE_MAX   = 430;   // caps the 325px canvas at ~1.3x in phone landscape
-  var DESKTOP_MAX  = 1280;  // report is authored at 1280; 1:1 is sharpest.
+  var BREAKPOINT  = 768;    // window width below this = mobile layout
+  var MOBILE_MAX  = 430;    // caps the 325px canvas at ~1.3x in phone landscape
+  var DESKTOP_MAX = 1280;   // report is authored at 1280; 1:1 is sharpest.
                             // Set to 99999 for full-bleed on wide monitors.
   // --------------------------------------------------------------------------
 
-  // Classify by the device's SHORT side, not the current window width, so
-  // rotating a phone does not flip it to the desktop layout.
-  var w = screen.width  || window.innerWidth;
-  var h = screen.height || window.innerHeight;
-  var isMobile = Math.min(w, h) < BREAKPOINT;
+  var q = new URLSearchParams(location.search);
 
-  document.getElementById('wrap').style.maxWidth =
-    (isMobile ? MOBILE_MAX : DESKTOP_MAX) + 'px';
+  // Width of the actual browser window. On a desktop this is ~1200-2500;
+  // on a phone ~320-430. Overridable with ?view=desktop or ?view=mobile.
+  var vw = window.innerWidth || document.documentElement.clientWidth;
+  var forced = q.get('view');
+  var isMobile = forced ? (forced === 'mobile') : (vw < BREAKPOINT);
 
-  document.getElementById('frame').src =
-    BASE + '&pageName=' + PAGE[isMobile ? 'mobile' : 'desktop'];
+  var wrap = document.getElementById('wrap'),
+      frame = document.getElementById('frame');
+
+  wrap.style.maxWidth = (isMobile ? MOBILE_MAX : DESKTOP_MAX) + 'px';
+
+  var pageName = PAGE[isMobile ? 'mobile' : 'desktop'];
+  var url = BASE + '&pageName=' + pageName;
+  frame.src = url;
+
+  // ?debug=1 shows what this page decided. Remove nothing; just drop the param.
+  if (q.get('debug')) {
+    var d = document.getElementById('dbg');
+    d.hidden = false;
+    wrap.style.height = 'calc(100dvh - 130px)';
+    setTimeout(function () {
+      d.textContent =
+        'build          ' + BUILD + '\n' +
+        'innerWidth     ' + vw + (forced ? '   (OVERRIDDEN by ?view=' + forced + ')' : '') + '\n' +
+        'screen         ' + screen.width + ' x ' + screen.height + '\n' +
+        'branch         ' + (isMobile ? 'MOBILE' : 'DESKTOP') + '\n' +
+        'pageName sent  ' + pageName + '  (' + (isMobile ? 'Mobile Home' : 'Desktop Home') + ')\n' +
+        'iframe width   ' + frame.clientWidth + '   -> expect ' +
+          Math.round(frame.clientWidth / (isMobile ? 325 : 1280) * 100) + '% zoom';
+    }, 400);
+  }
 
   // Deliberately no resize handler: changing the page would reload the report
   // and throw away whatever the visitor had open.
